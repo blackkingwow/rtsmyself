@@ -10,5 +10,8 @@
 # Visual Studio
 .vs/
 
+# Report files
+RTS塔防-虚拟现实开发大作业报告.docx
+
 # Never ignore
 !.gitignore
