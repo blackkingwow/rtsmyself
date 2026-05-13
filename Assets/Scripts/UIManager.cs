@@ -43,6 +43,9 @@ public class UIManager : MonoBehaviour
 
     private GameObject gameOverPanel;
     private GameObject winPanel;
+    private GameObject pausePanel;
+    private GameObject tutorialPanel;
+    private bool isPaused = false;
     private Text waveText;
     private Text countdownText;
 
@@ -70,6 +73,11 @@ public class UIManager : MonoBehaviour
         unitsParent = GameObject.Find("Units")?.transform;
         enemiesParent = GameObject.Find("Enemies")?.transform;
 
+        // 强制加载模型（Inspector中因编码问题引用易丢失）
+        if (missileModelPrefab == null)
+            missileModelPrefab = LoadAssetAtPath("Assets/Model/导弹.fbx");
+        if (antiAirModelPrefab == null)
+            antiAirModelPrefab = LoadAssetAtPath("Assets/Model/防空导弹发射器.glb");
         Missile.modelPrefab = missileModelPrefab;
 
         CreateAllUI();
@@ -78,7 +86,32 @@ public class UIManager : MonoBehaviour
 
     void Update()
     {
+        // ESC 暂停/恢复
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (tutorialPanel != null && tutorialPanel.activeSelf)
+            {
+                tutorialPanel.SetActive(false);
+                Time.timeScale = 1f;
+                isPaused = false;
+                return;
+            }
+            TogglePause();
+        }
+
         if (GameManager.Instance == null || GameManager.Instance.isGameOver) return;
+        if (isPaused) return;
+
+        // Q键快捷发射导弹
+        if (Input.GetKeyDown(KeyCode.Q) && currentSelectedUnit is MissileVehicle mv)
+        {
+            EnemyPlane nearest = FindNearestEnemy(mv.transform.position);
+            if (nearest != null && mv.CanAttack())
+            {
+                mv.Attack(nearest);
+                ShowMessage("导弹发射！");
+            }
+        }
 
         HandleInput();
         UpdateUI();
@@ -150,6 +183,18 @@ public class UIManager : MonoBehaviour
             return;
         }
 
+        // 碰撞检测：部署位置是否被占用
+        Collider[] overlaps = Physics.OverlapSphere(point, 2f);
+        foreach (var col in overlaps)
+        {
+            if (col.CompareTag("Enemy")) continue;
+            if (col.GetComponentInParent<UnitBase>() != null)
+            {
+                ShowMessage("此处已被占用，请选择其他位置");
+                return;
+            }
+        }
+
         if (deployType == "missile")
         {
             if (!GameManager.Instance.SpendGold(200))
@@ -167,9 +212,9 @@ public class UIManager : MonoBehaviour
         }
         else if (deployType == "radar")
         {
-            if (!GameManager.Instance.SpendGold(100))
+            if (!GameManager.Instance.SpendGold(75))
             {
-                ShowMessage("金钱不足！部署雷达站需要100金钱");
+                ShowMessage("金钱不足！部署雷达站需要75金钱");
                 return;
             }
             if (radarStationPrefab != null)
@@ -309,7 +354,7 @@ public class UIManager : MonoBehaviour
         {
             actionBtn1.gameObject.SetActive(true);
             actionBtn2.gameObject.SetActive(true);
-            actionBtn1Text.text = "修复";
+            actionBtn1Text.text = "修复(50金)";
             actionBtn2Text.text = "升级(" + GameManager.Instance.GetBaseUpgradeCost() + "金)";
         }
     }
@@ -433,6 +478,8 @@ public class UIManager : MonoBehaviour
     {
         CreateMainCanvas();
         CreateWaveUI();
+        CreatePausePanel();
+        CreateTutorialPanel();
         CreateFogOverlay();
         CreateGameOverPanel();
         CreateWinPanel();
@@ -511,7 +558,7 @@ public class UIManager : MonoBehaviour
         });
         deployMissileCD = CreateText("", deployMissileBtn.transform, new Vector2(0, -30), new Vector2(200, 20), 14, TextAnchor.MiddleCenter);
 
-        deployRadarBtn = CreateButton("部署雷达站(100金)", panel.transform, new Vector2(0, 40), new Vector2(200, 50));
+        deployRadarBtn = CreateButton("部署雷达站(75金)", panel.transform, new Vector2(0, 40), new Vector2(200, 50));
         deployRadarBtn.onClick.AddListener(() =>
         {
             if (GameManager.Instance.isGameOver) return;
@@ -660,15 +707,15 @@ public class UIManager : MonoBehaviour
 
         if (currentSelectedUnit is PlayerBase)
         {
-            if (GameManager.Instance.SpendGold(300))
+            int cost = GameManager.Instance.GetBaseUpgradeCost();
+            if (GameManager.Instance.gold < cost)
             {
-                GameManager.Instance.UpgradeBase();
-                ShowMessage("基地已升级！金钱产出提升");
+                ShowMessage("金钱不足，升级需要" + cost + "金钱");
+                return;
             }
-            else
-            {
-                ShowMessage("金钱不足，升级需要300金钱");
-            }
+            GameManager.Instance.UpgradeBase();
+            UpdateBottomBar();
+            ShowMessage("基地已升级！收入提升至" + GameManager.Instance.GetBaseIncome() + "金/10秒");
         }
     }
 
@@ -896,6 +943,128 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    void CreatePausePanel()
+    {
+        GameObject mainCanvas = GameObject.Find("GameCanvas");
+        if (mainCanvas == null) return;
+
+        pausePanel = new GameObject("PausePanel");
+        pausePanel.transform.SetParent(mainCanvas.transform, false);
+        RectTransform rt = pausePanel.AddComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.sizeDelta = Vector2.zero;
+        Image bg = pausePanel.AddComponent<Image>();
+        bg.color = new Color(0, 0, 0, 0.8f);
+
+        CreateTextCentered("游戏暂停", pausePanel.transform, new Vector2(0, 150), new Vector2(400, 60), 36);
+
+        Button tutorialBtn = CreateButton("查看教程", pausePanel.transform, new Vector2(0, 40), new Vector2(250, 60));
+        tutorialBtn.onClick.AddListener(() =>
+        {
+            pausePanel.SetActive(false);
+            if (tutorialPanel != null) tutorialPanel.SetActive(true);
+        });
+
+        Button menuBtn = CreateButton("返回菜单", pausePanel.transform, new Vector2(0, -40), new Vector2(250, 60));
+        menuBtn.onClick.AddListener(() =>
+        {
+            Time.timeScale = 1f;
+            UnityEngine.SceneManagement.SceneManager.LoadScene("MenuScene");
+        });
+
+        Button resumeBtn = CreateButton("返回游戏", pausePanel.transform, new Vector2(0, -120), new Vector2(250, 60));
+        resumeBtn.onClick.AddListener(() => TogglePause());
+
+        pausePanel.SetActive(false);
+    }
+
+    void CreateTutorialPanel()
+    {
+        GameObject mainCanvas = GameObject.Find("GameCanvas");
+        if (mainCanvas == null) return;
+
+        tutorialPanel = new GameObject("TutorialPanel");
+        tutorialPanel.transform.SetParent(mainCanvas.transform, false);
+        RectTransform rt = tutorialPanel.AddComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.sizeDelta = Vector2.zero;
+        Image bg = tutorialPanel.AddComponent<Image>();
+        bg.color = new Color(0, 0, 0.1f, 0.95f);
+
+        CreateTextCentered("游戏教程", tutorialPanel.transform, new Vector2(0, 280), new Vector2(400, 50), 32);
+
+        string tutorialText =
+            "【部署单位】\n" +
+            "右侧面板选择单位后，点击地图下半区部署\n" +
+            "导弹车(200金)：可移动，自动攻击最近敌人\n" +
+            "雷达站(100金)：切换主动/静默模式扩展视野\n" +
+            "防空发射器(100金)：开机自动拦截，需补充弹药\n\n" +
+            "【技能】\n" +
+            "骇入敌方网络：全图视野持续12秒，冷却120秒\n" +
+            "电磁波干扰(200金)：敌机减速至15%，持续20秒\n\n" +
+            "【操作】\n" +
+            "左键点击选择单位，右键取消\n" +
+            "选中导弹车后点击地面移动，点击按钮发射导弹\n" +
+            "选中基地后可修复友方单位或升级基地\n" +
+            "ESC键打开此暂停菜单\n\n" +
+            "【目标】\n" +
+            "抵御20波敌方进攻，保护基地不被摧毁";
+
+        GameObject contentGo = new GameObject("TutorialContent");
+        contentGo.transform.SetParent(tutorialPanel.transform, false);
+        RectTransform crt = contentGo.AddComponent<RectTransform>();
+        crt.anchorMin = new Vector2(0.5f, 0.5f);
+        crt.anchorMax = new Vector2(0.5f, 0.5f);
+        crt.pivot = new Vector2(0.5f, 0.5f);
+        crt.anchoredPosition = new Vector2(0, -80);
+        crt.sizeDelta = new Vector2(700, 500);
+        Text contentText = contentGo.AddComponent<Text>();
+        contentText.text = tutorialText;
+        contentText.fontSize = 18;
+        contentText.font = uiFont;
+        contentText.color = new Color(0.9f, 0.9f, 0.9f);
+        contentText.alignment = TextAnchor.UpperLeft;
+
+        Button backBtn = CreateButton("返回游戏", tutorialPanel.transform, new Vector2(0, -290), new Vector2(200, 50));
+        backBtn.onClick.AddListener(() =>
+        {
+            tutorialPanel.SetActive(false);
+            Time.timeScale = 1f;
+            isPaused = false;
+        });
+
+        tutorialPanel.SetActive(false);
+    }
+
+    void TogglePause()
+    {
+        if (pausePanel == null) return;
+        isPaused = !isPaused;
+        pausePanel.SetActive(isPaused);
+        Time.timeScale = isPaused ? 0f : 1f;
+    }
+
+    Text CreateTextCentered(string content, Transform parent, Vector2 pos, Vector2 size, int fontSize)
+    {
+        GameObject go = new GameObject("Txt_" + content);
+        go.transform.SetParent(parent, false);
+        RectTransform rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = pos;
+        rt.sizeDelta = size;
+        Text text = go.AddComponent<Text>();
+        text.text = content;
+        text.fontSize = fontSize;
+        text.font = uiFont;
+        text.color = Color.white;
+        text.alignment = TextAnchor.MiddleCenter;
+        return text;
+    }
+
     #endregion
 
     EnemyPlane FindNearestEnemy(Vector3 from)
@@ -919,6 +1088,15 @@ public class UIManager : MonoBehaviour
         return nearest;
     }
 
+    GameObject LoadAssetAtPath(string path)
+    {
+#if UNITY_EDITOR
+        return UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
+#else
+        return null;
+#endif
+    }
+
     public void ShowMessage(string msg)
     {
         if (messageText != null)
@@ -931,6 +1109,7 @@ public class UIManager : MonoBehaviour
     // 安全销毁事件
     void OnDestroy()
     {
+        Time.timeScale = 1f;
         if (GameManager.Instance != null)
         {
             GameManager.Instance.OnGameOver -= OnGameOverTriggered;

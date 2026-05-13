@@ -158,7 +158,9 @@ MonoBehaviour:
   missileVehiclePrefab: {fileID: 8513192695843695221, guid: c81bedf3aeb98f045879082fd4777b48, type: 3}
   radarStationPrefab: {fileID: 2700418096711233762, guid: dfb0098b418bd204fb81f3330377b479, type: 3}
   antiAirPrefab: {fileID: 0}
+  antiAirModelPrefab: {fileID: 0}
   enemyPlanePrefab: {fileID: 8130741097829900987, guid: 5cc8a335691108e4aa81bce276c59c4d, type: 3}
+  missileModelPrefab: {fileID: 0}
 --- !u!4 &552957508
 Transform:
   m_ObjectHideFlags: 0
@@ -591,10 +593,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gold: 500
-  goldPerMinute: 100
+  goldPerInterval: 20
+  goldInterval: 10
+  currentWave: 0
+  maxWaves: 20
+  waveInterval: 30
+  waveTimer: 0
+  enemiesAliveInWave: 0
+  enemiesTotalInWave: 0
+  isWaveActive: 0
   isGameOver: 0
+  isVictory: 0
   isHacked: 0
   playerBase: {fileID: 0}
+  baseUpgradeCount: 0
+  isEmpActive: 0
+  empSlowFactor: 0.15
 --- !u!4 &1725431549
 Transform:
   m_ObjectHideFlags: 0

@@ -16,6 +16,8 @@ public class AntiAirMissileLauncher : UnitBase
         maxHealth = 30;
         currentHealth = maxHealth;
         visionRadius = 1f;
+        BoxCollider col = GetComponent<BoxCollider>();
+        if (col != null) col.size = new Vector3(0.5f, 0.33f, 0.5f);
     }
 
     void Update()

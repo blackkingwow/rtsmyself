@@ -20,6 +20,12 @@ public class UnitBase : MonoBehaviour
     protected virtual void Awake()
     {
         currentHealth = maxHealth;
+        // 确保地面单位有碰撞体
+        if (GetComponent<Collider>() == null)
+        {
+            BoxCollider col = gameObject.AddComponent<BoxCollider>();
+            col.size = new Vector3(1.5f, 1f, 1.5f);
+        }
     }
 
     protected virtual void Start()

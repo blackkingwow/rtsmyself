@@ -4,8 +4,8 @@ public class RadarStation : UnitBase
 {
     [Header("雷达站属性")]
     public bool isActiveMode = false;
-    public float silentVisionRadius = 8f;
-    public float activeVisionRadius = 20f;
+    public float silentVisionRadius = 3f;
+    public float activeVisionRadius = 10f;
     public float modeSwitchCooldown = 0.1f;
     private float lastSwitchTime = -0.1f;
 
@@ -16,6 +16,8 @@ public class RadarStation : UnitBase
         maxHealth = 300;
         currentHealth = maxHealth;
         visionRadius = silentVisionRadius;
+        BoxCollider col = GetComponent<BoxCollider>();
+        if (col != null) col.size = new Vector3(0.5f, 0.33f, 0.5f);
     }
 
     void Update()
