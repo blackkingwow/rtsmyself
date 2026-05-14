@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTS塔防「基地保卫战」——虚拟现实开发答辩</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  background: #0a0a0f; color: #e0e0e0;
+  overflow: hidden; user-select: none;
+}
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 60px 80px; opacity: 0; transition: opacity 0.4s;
+  pointer-events: none;
+}
+.slide.active { opacity: 1; pointer-events: auto; }
+h1 { font-size: 48px; color: #ff6b35; margin-bottom: 20px; text-align: center; }
+h2 { font-size: 36px; color: #ff8c42; margin-bottom: 30px; text-align: center;
+     border-bottom: 2px solid #ff6b3533; padding-bottom: 15px; }
+h3 { font-size: 22px; color: #ffb347; margin-bottom: 15px; }
+ul { list-style: none; max-width: 900px; width: 100%; }
+li { font-size: 20px; line-height: 2; padding: 4px 0; }
+li::before { content: '▸ '; color: #ff6b35; }
+.tag { display: inline-block; background: #ff6b3522; color: #ff8c42; padding: 2px 10px;
+       border-radius: 4px; font-size: 14px; margin-left: 8px; }
+.highlight { color: #ff6b35; font-weight: bold; }
+.code { font-family: 'Consolas', 'Courier New', monospace; background: #1a1a2e;
+        color: #7ec8e3; padding: 2px 8px; border-radius: 4px; font-size: 15px; }
+.files { font-size: 15px; color: #888; margin-top: 8px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 900px; width: 100%; }
+.card { background: #1a1a2e; border-radius: 12px; padding: 30px; border-left: 4px solid #ff6b35; }
+.arrow { position: fixed; bottom: 30px; right: 40px; font-size: 18px; color: #888; }
+.nav { display: flex; gap: 8px; position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: #333; cursor: pointer; transition: 0.3s; }
+.dot.active { background: #ff6b35; }
+.subtitle { font-size: 22px; color: #aaa; margin-bottom: 40px; }
+</style>
+</head>
+<body>
+
+<!-- Slide 0: Title -->
+<div class="slide active" id="s0">
+  <h1>RTS塔防「基地保卫战」</h1>
+  <div class="subtitle">虚拟现实开发 · Unity 3D 即时策略塔防游戏</div>
+  <ul style="text-align:center">
+    <li style="display:inline; margin: 0 20px;">15 个 C# 脚本</li>
+    <li style="display:inline; margin: 0 20px;">5 个 3D 模型</li>
+    <li style="display:inline; margin: 0 20px;">2 个场景</li>
+    <li style="display:inline; margin: 0 20px;">12+ 项核心功能</li>
+  </ul>
+</div>
+
+<!-- Slide 1: Features overview -->
+<div class="slide" id="s1">
+  <h2>项目功能全景</h2>
+  <div class="grid2">
+    <div>
+      <h3>核心系统</h3>
+      <ul>
+        <li>战争迷雾 <span class="tag">动态纹理</span></li>
+        <li>导弹追踪投射物 <span class="tag">物理计算</span></li>
+        <li>20 波递增波次 <span class="tag">状态机</span></li>
+        <li>双技能系统 <span class="tag">全局控制</span></li>
+      </ul>
+    </div>
+    <div>
+      <h3>辅助系统</h3>
+      <ul>
+        <li>经济资源管理</li>
+        <li>碰撞避障</li>
+        <li>粒子特效链</li>
+        <li>3D 模型集成</li>
+        <li>暂停菜单 / 教程</li>
+        <li>主菜单场景</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 2: War Fog -->
+<div class="slide" id="s2">
+  <h2>战争迷雾系统</h2>
+  <div class="files">FogOfWar.cs / EnemyPlane.cs / UnitBase.cs</div>
+  <ul>
+    <li>世界空间 <span class="code">Mesh</span> (68×46) 覆盖地图，挂载 <span class="code">Texture2D</span> (512×512)</li>
+    <li>每4帧：全涂黑 → 遍历友方单位 → 按视野半径"挖洞"</li>
+    <li><span class="highlight">正圆形修复</span>：X/Z 像素比例不同 → 分别计算 rx、rz，用椭圆方程反求</li>
+    <li>敌方在迷雾中：<span class="code">Renderer.enabled = false</span> + <span class="code">Collider.enabled = false</span></li>
+    <li>可见性查询：<span class="code">IsPositionRevealed()</span> 静态方法供全局调用</li>
+  </ul>
+</div>
+
+<!-- Slide 3: Missile -->
+<div class="slide" id="s3">
+  <h2>导弹追踪系统</h2>
+  <div class="files">Missile.cs / MissileVehicle.cs / AntiAirMissileLauncher.cs</div>
+  <ul>
+    <li>发射：创建空 <span class="code">GameObject</span> → 挂 <span class="code">Missile</span> 脚本 → 加载导弹.fbx模型为子物体</li>
+    <li>追踪：<span class="code">Quaternion.LookRotation(方向)</span> 始终朝向目标</li>
+    <li>速度 20单位/秒，命中阈值 0.8，超时 10s 自毁</li>
+    <li>尾焰：<span class="code">ParticleSystem</span> Cone 形状 + 橙色粒子持续喷射</li>
+    <li>导弹车双模式：<span class="highlight">Q键快捷发射</span> + 底部栏按钮发射</li>
+  </ul>
+</div>
+
+<!-- Slide 4: Wave System -->
+<div class="slide" id="s4">
+  <h2>波次系统 & 经济系统</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>波次管理 <span class="tag">GameManager.cs</span></h3>
+      <ul>
+        <li>20波，每波敌人数 = 波次数</li>
+        <li>第一波前 15s 准备，波次间 30s</li>
+        <li>每 0.3s 生成一架敌机</li>
+        <li>撤退(无金币) vs 击毁(+50金) 分开处理</li>
+        <li>全清 → <span class="highlight">WIN</span> 面板</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>经济循环 <span class="tag">GameManager.cs</span></h3>
+      <ul>
+        <li>初始 1000 金</li>
+        <li>每 10s 产出 20 金</li>
+        <li>击杀敌机 +50 金</li>
+        <li>升级公式：费用 150+n×100</li>
+        <li>收入 20+n×20</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 5: Skills -->
+<div class="slide" id="s5">
+  <h2>技能与视觉系统</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>双技能</h3>
+      <ul>
+        <li>骇入网络：全图视野 12s / CD 120s</li>
+        <li>电磁波干扰：减速至 15% 20s / CD 180s / 200金</li>
+        <li><span class="code">CurrentSpeed</span> 属性动态返回减速后的速度</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>粒子特效链</h3>
+      <ul>
+        <li>尾焰 → Cone 持续发射 (橙色)</li>
+        <li>命中 → Sphere Burst 爆发 (黄色)</li>
+        <li>爆炸 → 渐变色球形 (橙→红→暗)</li>
+        <li>全部运行时动态创建，自动清理</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 6: Tech highlights -->
+<div class="slide" id="s6">
+  <h2>技术亮点</h2>
+  <ul>
+    <li><span class="highlight">战争迷雾正圆形算法</span> — 纹理XY比例不同时用椭圆方程反求，保证世界空间正圆</li>
+    <li><span class="highlight">扇形避障</span> — 13角度扫描 + 通畅距离/方向一致性加权评分</li>
+    <li><span class="highlight">动态UI构建</span> — Canvas 完全由代码生成，无预制体依赖</li>
+    <li><span class="highlight">Filled Image Sprite</span> — 运行时创建1×1纹理解决血条不渲染问题</li>
+    <li><span class="highlight">序列化陷阱修复</span> — public字段在预制体/场景存旧值，需同步修改</li>
+    <li><span class="highlight">事件驱动架构</span> — UnityAction 解耦 UI 与逻辑 (OnGoldChanged/OnWaveChanged)</li>
+    <li><span class="highlight">GLB/FBX 模型集成</span> — 嵌套Prefab挂载 + Transform旋转适配 + 材质修复</li>
+  </ul>
+</div>
+
+<!-- Slide 7: Thank You -->
+<div class="slide" id="s7">
+  <h1 style="font-size:56px">感谢聆听</h1>
+  <div class="subtitle" style="margin-top:30px">RTS塔防「基地保卫战」<br>Unity 3D · C# · 虚拟现实开发</div>
+  <ul style="text-align:center; margin-top:40px">
+    <li style="display:inline; margin: 0 20px;"><span class="code">Assets/Scripts/</span> 15 个脚本</li>
+    <li style="display:inline; margin: 0 20px;"><span class="code">Assets/Model/</span> 5 个模型</li>
+  </ul>
+</div>
+
+<div class="nav" id="nav"></div>
+<div class="arrow">← → 键切换 · 共 8 页</div>
+
+<script>
+let current = 0;
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+
+// Build dots
+const nav = document.getElementById('nav');
+for (let i = 0; i < total; i++) {
+  const dot = document.createElement('div');
+  dot.className = 'dot' + (i === 0 ? ' active' : '');
+  dot.onclick = () => go(i);
+  nav.appendChild(dot);
+}
+
+function go(i) {
+  slides[current].classList.remove('active');
+  nav.children[current].classList.remove('active');
+  current = i;
+  slides[current].classList.add('active');
+  nav.children[current].classList.add('active');
+}
+
+document.onkeydown = e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+    e.preventDefault();
+    if (current < total - 1) go(current + 1);
+  }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (current > 0) go(current - 1);
+  }
+  if (e.key === 'Home') { e.preventDefault(); go(0); }
+  if (e.key === 'End') { e.preventDefault(); go(total - 1); }
+};
+</script>
+</body>
+</html>
