@@ -5,7 +5,7 @@ public class RadarStation : UnitBase
     [Header("雷达站属性")]
     public bool isActiveMode = false;
     public float silentVisionRadius = 3f;
-    public float activeVisionRadius = 10f;
+    public float activeVisionRadius = 12f;
     public float modeSwitchCooldown = 0.1f;
     private float lastSwitchTime = -0.1f;
 

@@ -123,7 +123,7 @@ MonoBehaviour:
   visionRadius: 5
   isActiveMode: 0
   silentVisionRadius: 3
-  activeVisionRadius: 10
+  activeVisionRadius: 12
   modeSwitchCooldown: 0.1
 --- !u!114 &9181755700818931423
 MonoBehaviour:

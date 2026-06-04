@@ -77,33 +77,24 @@ public class EnemyPlane : UnitBase
 
     void ChooseTarget()
     {
-        // 优先选开启主动侦察的雷达站，其次选玩家基地
+        // 收集所有有效目标：主动雷达站 + 玩家基地
+        var targets = new System.Collections.Generic.List<UnitBase>();
         RadarStation[] radars = FindObjectsOfType<RadarStation>();
-        RadarStation activeRadar = null;
         foreach (var r in radars)
         {
             if (!r.isDead && r.isActiveMode)
-            {
-                activeRadar = r;
-                break;
-            }
+                targets.Add(r);
         }
+        if (GameManager.Instance.playerBase != null && !GameManager.Instance.playerBase.isDead)
+            targets.Add(GameManager.Instance.playerBase);
 
-        if (activeRadar != null)
+        if (targets.Count == 0)
         {
-            lockedTarget = activeRadar;
-        }
-        else if (GameManager.Instance.playerBase != null && !GameManager.Instance.playerBase.isDead)
-        {
-            lockedTarget = GameManager.Instance.playerBase;
-        }
-        else
-        {
-            // 无目标则直接飞走
             Destroy(gameObject, 2f);
             return;
         }
 
+        lockedTarget = targets[Random.Range(0, targets.Count)];
         targetLastPosition = lockedTarget.transform.position;
     }
 

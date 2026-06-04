@@ -592,7 +592,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1218b13971f755041812ee33af532bbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gold: 500
+  gold: 1000
   goldPerInterval: 20
   goldInterval: 10
   currentWave: 0

@@ -14,7 +14,7 @@ public class PlayerBase : UnitBase
         unitName = "玩家基地";
         maxHealth = 1000;
         currentHealth = maxHealth;
-        visionRadius = 3f;
+        visionRadius = 5f;
     }
 
     protected override void Start()

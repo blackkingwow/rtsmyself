@@ -5,7 +5,7 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get; private set; }
 
     [Header("资源")]
-    public int gold = 500;
+    public int gold = 1000;
     public int goldPerInterval = 20;
     public float goldInterval = 10f;
     private float goldTimer;
